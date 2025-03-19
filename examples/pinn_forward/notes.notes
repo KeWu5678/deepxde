@@ -1,0 +1,31 @@
+@ts-nocheck
+* eslint-disable */
+
+DEEPXDE
+1. How do the loss function works?
+    - The string loss is given during the compiling
+    - The loss is converted to a function "loss_fn" by losses_model.get(loss), such as MSE.
+    - In the traning and testing phase, the output_losses is called and losses method is assigned to losses_fn, the output_losses is computed.
+2. why the in the dataclass a tuple is defined?
+
+
+DEBUG:
+1. .. means the folder in the higher level. For example, ../data.py means find the file data.py in the parent folder.
+2. __init__ outside a class. the file is package maker and in charge of import management.
+
+
+PROGRAMMING:
+1. map(function, iterable) function: iterate over the iterable and apply the function to each item. The return is a map object.
+
+2. list(map(function, iterable)) convert the map object to a list.
+To access the items in the map object, you need to convert it to a list first: 
+x = self.activation[0](linear(x))  # Error! Can't index map object
+
+3. The double interation: 
+
+
+pytorch:
+1. nn.ModuleList() is a container that holds a list of objects Module. 
+2. nn.Model(x): The __call__ method (which allows using net(inputs)) - also inherited from nn.Module
+
+3. initializer: the build-in initializer takes the layer as input. 

@@ -1,6 +1,6 @@
 ipython
 scipy
-sklearn
+scikit-learn
 matplotlib
 scikit-optimize
 seaborn

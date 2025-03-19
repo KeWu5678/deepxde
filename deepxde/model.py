@@ -1,5 +1,9 @@
 __all__ = ["LossHistory", "Model", "TrainState"]
-
+"""
+[Joe]: 
+When someone imports this module using from deepxde.model import *, only the classes LossHistory, Model, and TrainState will be imported.
+Without __all__ defined, import * would import all names that don't begin with an underscore.
+"""
 import pickle
 import warnings
 from collections import OrderedDict
@@ -122,7 +126,9 @@ class Model:
         if verbose > 0 and config.rank == 0:
             print("Compiling model...")
         self.opt_name = optimizer
+
         loss_fn = losses_module.get(loss)
+
         self.loss_weights = loss_weights
         if external_trainable_variables is None:
             self.external_trainable_variables = []
@@ -278,7 +284,7 @@ class Model:
 
     def _compile_pytorch(self, lr, loss_fn, decay):
         """pytorch"""
-
+        # [Joe]: This part if fine. 
         def outputs(training, inputs):
             self.net.train(mode=training)
             with torch.no_grad():
@@ -298,6 +304,7 @@ class Model:
             if auxiliary_vars is not None:
                 self.net.auxiliary_vars = torch.as_tensor(auxiliary_vars)
             self.net.train(mode=training)
+
             if isinstance(inputs, tuple):
                 inputs = tuple(
                     map(lambda x: torch.as_tensor(x).requires_grad_(), inputs)
@@ -306,11 +313,14 @@ class Model:
                 inputs = torch.as_tensor(inputs)
                 inputs.requires_grad_()
             outputs_ = self.net(inputs)
+
             # Data losses
             if targets is not None:
                 targets = torch.as_tensor(targets)
             # if forward-mode AD is used, then a forward call needs to be passed
             aux = [self.net] if config.autodiff == "forward" else None
+
+            # [Joe]: notice self argument. 
             losses = losses_fn(targets, outputs_, loss_fn, inputs, self, aux=aux)
             if not isinstance(losses, list):
                 losses = [losses]
@@ -333,13 +343,13 @@ class Model:
             )
 
         weight_decay = 0
-        if self.net.regularizer is not None:
-            if self.net.regularizer[0] != "l2":
-                raise NotImplementedError(
-                    f"{self.net.regularizer[0]} regularization to be implemented for "
-                    "backend pytorch"
-                )
-            weight_decay = self.net.regularizer[1]
+        # if self.net.regularizer is not None:
+        #     if self.net.regularizer[0] != "l2":
+        #         raise NotImplementedError(
+        #             f"{self.net.regularizer[0]} regularization to be implemented for "
+        #             "backend pytorch"
+        #         )
+        #     weight_decay = self.net.regularizer[1]
 
         optimizer_params = self.net.parameters()
         if self.external_trainable_variables:
@@ -371,6 +381,19 @@ class Model:
             def closure():
                 losses = outputs_losses_train(inputs, targets, auxiliary_vars)[1]
                 total_loss = torch.sum(losses)
+                if self.net.regularizer[0] == "l1":
+                    factor = self.net.regularizer[1]
+                    l1_penalty = 0
+                    for param in self.net.parameters():
+                        l1_penalty += torch.sum(torch.abs(param))
+                    total_loss += factor * l1_penalty
+                if self.net.regularizer[0] == "phi":
+                    gamma = self.net.regularizer[1]
+                    alpha = self.net.regularizer[2]
+                    phi_penalty = 0
+                    for param in  self.net.parameters():
+                        phi_penalty += torch.sum(1/gamma * torch.log(1 + gamma * param))
+                    total_loss += alpha * phi_penalty
                 self.opt.zero_grad()
                 total_loss.backward()
                 return total_loss

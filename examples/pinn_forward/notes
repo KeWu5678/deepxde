@@ -1,0 +1,32 @@
+@ts-nocheck
+* eslint-disable */
+
+data = dde.data.PDE(geom, ode_system, [ic1, ic2], 35, 2, solution=func, num_test=100)
+# there is the reference function func that provides the exact solution. The reference solution can be a data cloud.(See Lorenz example)
+
+Questions:
+1. How do the loss function works?
+    - The string loss is given during the compiling
+    - The loss is converted to a function "loss_fn" by losses_model.get(loss), such as MSE.
+    - In the traning and testing phase, the output_losses is called and losses method is assigned to losses_fn, the output_losses is computed.
+2. why the in the dataclass a tuple is defined?
+
+
+DEBUG:
+1. .. means the folder in the higher level. For example, ../data.py means find the file data.py in the parent folder.
+2. __init__ outside a class. the file is package maker and in charge of import management.
+
+
+PROGRAMMING:
+1. map(function, iterable) function: iterate over the iterable and apply the function to each item. The return is a map object.
+
+2. list(map(function, iterable)) convert the map object to a list.
+To access the items in the map object, you need to convert it to a list first: 
+x = self.activation[0](linear(x))  # Error! Can't index map object
+
+3. The double interation: 
+
+
+pytorch:
+1. nn.ModuleList() is a container that holds a list of modules. It is used to store a list of modules that are to be applied to each input element.
+2. nn.Model(x): The __call__ method (which allows using net(inputs)) - also inherited from nn.Module

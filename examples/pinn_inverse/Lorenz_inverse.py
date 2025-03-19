@@ -1,10 +1,15 @@
 """Backend supported: tensorflow.compat.v1, tensorflow, pytorch, jax"""
 import deepxde as dde
 import numpy as np
+import os
 
 
 def gen_traindata():
-    data = np.load("../dataset/Lorenz.npz")
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    examples_dir = os.path.dirname(script_dir)
+    data_path = os.path.join(examples_dir, "dataset", "Lorenz.npz")
+    print(f"Loading data from: {data_path}")
+    data = np.load(data_path)
     return data["t"], data["y"]
 
 
@@ -19,7 +24,7 @@ def Lorenz_system(x, y):
     dy2/dx = y1 * (15 - y3) - y2
     dy3/dx = y1 * y2 - 8/3 * y3
     """
-    y1, y2, y3 = y[:, 0:1], y[:, 1:2], y[:, 2:]
+    y1, y2, y3 = y[:, 0:1], y[:, 1:2], y[:, 2:] 
     dy1_x = dde.grad.jacobian(y, x, i=0)
     dy2_x = dde.grad.jacobian(y, x, i=1)
     dy3_x = dde.grad.jacobian(y, x, i=2)
@@ -71,7 +76,7 @@ data = dde.data.PDE(
     anchors=observe_t,
 )
 
-net = dde.nn.FNN([1] + [40] * 3 + [3], "tanh", "Glorot uniform")
+net = dde.nn.FNN([1] + [40] * 3 + [3], "tanh", "Glorot uniform", regularization=["l2", 0.01])
 model = dde.Model(data, net)
 
 external_trainable_variables = [C1, C2, C3]

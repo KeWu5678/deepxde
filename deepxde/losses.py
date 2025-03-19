@@ -37,6 +37,7 @@ def zero(*_):
     return tf.constant(0, dtype=config.real(tf))
 
 
+
 LOSS_DICT = {
     "mean absolute error": mean_absolute_error,
     "MAE": mean_absolute_error,

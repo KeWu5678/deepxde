@@ -12,9 +12,10 @@ class PDE(Data):
 
     Args:
         geometry: Instance of ``Geometry``.
-        pde: A global PDE or a list of PDEs. ``None`` if no global PDE.
-        bcs: A boundary condition or a list of boundary conditions. Use ``[]`` if no
-            boundary condition.
+        pde:    Callable: (inputs, outputs) -> (losses): all arraies.
+                 A global PDE or a list of PDEs. ``None`` if no global PDE.
+        bcs:    A boundary condition or a list of boundary conditions. Use ``[]`` if no
+                boundary condition.
         num_domain (int): The number of training points sampled inside the domain.
         num_boundary (int): The number of training points sampled on the boundary.
         train_distribution (string): The distribution to sample training points. One of
@@ -53,22 +54,22 @@ class PDE(Data):
             error= dde.metrics.l2_relative_error(y_true, y_pred)
 
     Attributes:
-        train_x_all: A Numpy array of points for PDE training. `train_x_all` is
-            unordered, and does not have duplication. If there is PDE, then
-            `train_x_all` is used as the training points of PDE.
-        train_x_bc: A Numpy array of the training points for BCs. `train_x_bc` is
-            constructed from `train_x_all` at the first step of training, by default it
-            won't be updated when `train_x_all` changes. To update `train_x_bc`, set it
-            to `None` and call `bc_points`, and then update the loss function by
-            ``model.compile()``.
+        train_x_all:    A Numpy array of points for PDE training. `train_x_all` is
+                        unordered, and does not have duplication. If there is PDE, then
+                        `train_x_all` is used as the training points of PDE.
+        train_x_bc:     A Numpy array of the training points for BCs. `train_x_bc` is
+                        constructed from `train_x_all` at the first step of training, by default it
+                         won't be updated when `train_x_all` changes. To update `train_x_bc`, set it
+                        to `None` and call `bc_points`, and then update the loss function by
+                        ``model.compile()``.
         num_bcs (list): `num_bcs[i]` is the number of points for `bcs[i]`.
-        train_x: A Numpy array of the points fed into the network for training.
-            `train_x` is ordered from BC points (`train_x_bc`) to PDE points
-            (`train_x_all`), and may have duplicate points.
+        train_x:        A Numpy array of the points fed into the network for training.
+                        `train_x` is ordered from BC points (`train_x_bc`) to PDE points
+                        (`train_x_all`), and may have duplicate points.
         train_aux_vars: Auxiliary variables that associate with `train_x`.
-        test_x: A Numpy array of the points fed into the network for testing, ordered
-            from BCs to PDE. The BC points are exactly the same points in `train_x_bc`.
-        test_aux_vars: Auxiliary variables that associate with `test_x`.
+        test_x:         A Numpy array of the points fed into the network for testing, ordered
+                        from BCs to PDE. The BC points are exactly the same points in `train_x_bc`.
+        test_aux_vars:  Auxiliary variables that associate with `test_x`.
     """
 
     def __init__(
@@ -87,6 +88,7 @@ class PDE(Data):
     ):
         self.geom = geometry
         self.pde = pde
+        # [Joe]: bcs is given in the initialization. 
         self.bcs = bcs if isinstance(bcs, (list, tuple)) else [bcs]
 
         self.num_domain = num_domain
@@ -131,6 +133,15 @@ class PDE(Data):
         self.test()
 
     def losses(self, targets, outputs, loss_fn, inputs, model, aux=None):
+        """[Joe]
+        Args: 
+        targets:    Ground truth values if available (from data.train_y or data.test_y)
+        outputs:    Network predictions from self.net(inputs)
+        loss_fn:    The loss function specified in model.compile() (default is MSE)
+        inputs:     Training points (from data.train_x or data.test_x)
+        model:      The model instance itself
+        aux:        Additional variables for automatic differentiation
+        """
         if backend_name in ["tensorflow.compat.v1", "paddle"]:
             outputs_pde = outputs
         elif backend_name in ["tensorflow", "pytorch"]:
@@ -138,12 +149,14 @@ class PDE(Data):
                 outputs_pde = outputs
             elif config.autodiff == "forward":
                 # forward-mode AD requires functions
+                # [Joe] aux[0]: ??? 
                 outputs_pde = (outputs, aux[0])
         elif backend_name == "jax":
             # JAX requires pure functions
             outputs_pde = (outputs, aux[0])
 
         f = []
+        # [Joe]: f return the global PDE loss at input points. 
         if self.pde is not None:
             if get_num_args(self.pde) == 2:
                 f = self.pde(inputs, outputs_pde)
@@ -156,20 +169,26 @@ class PDE(Data):
                 else:
                     raise ValueError("Auxiliary variable function not defined.")
             if not isinstance(f, (list, tuple)):
+                # [Joe]: f should be a list or tuple. 
                 f = [f]
 
         if not isinstance(loss_fn, (list, tuple)):
+        #[Joe]: if loss_fn not be list, tuple. 
             loss_fn = [loss_fn] * (len(f) + len(self.bcs))
+            # [Joe]: loss_fn now a list of all the conditions. 
         elif len(loss_fn) != len(f) + len(self.bcs):
             raise ValueError(
                 "There are {} errors, but only {} losses.".format(
                     len(f) + len(self.bcs), len(loss_fn)
                 )
             )
-
+        # [Joe]: The cumulative sum function. 
         bcs_start = np.cumsum([0] + self.num_bcs)
+        # [Joe]: Convert numpy integer to python integer
         bcs_start = list(map(int, bcs_start))
+        # [Joe]: Slice the global condition such that the boundary points are excluded. bcs_start[-1] is where all the boundary points end and interior points start.
         error_f = [fi[bcs_start[-1] :] for fi in f]
+        # [Joe]: The use of enumerate, intersting.
         losses = [
             loss_fn[i](bkd.zeros_like(error), error) for i, error in enumerate(error_f)
         ]

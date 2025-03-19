@@ -3,7 +3,10 @@ import abc
 
 class Data(abc.ABC):
     """Data base class."""
-
+    # [Joe]: The losses method in the base class is indeed just a placeholder.
+    # it raises NotImplementedError so that subclasses know they must provide their own implementation.
+    # Any subclass must override it with logic specific to that subclass’s data or modeling needs
+    # Morespecificlly, it has to be defined in a model. 
     def losses(self, targets, outputs, loss_fn, inputs, model, aux=None):
         """Return a list of losses, i.e., constraints."""
         raise NotImplementedError("Data.losses is not implemented.")
@@ -15,7 +18,7 @@ class Data(abc.ABC):
     def losses_test(self, targets, outputs, loss_fn, inputs, model, aux=None):
         """Return a list of losses for test dataset, i.e., constraints."""
         return self.losses(targets, outputs, loss_fn, inputs, model, aux=aux)
-
+    
     @abc.abstractmethod
     def train_next_batch(self, batch_size=None):
         """Return a training dataset of the size `batch_size`."""

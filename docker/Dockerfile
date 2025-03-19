@@ -3,6 +3,7 @@ LABEL description="DeepXDE with Tensorflow PyTorch and GPU support"
 
 COPY requirements.txt /root
 WORKDIR /root
+RUN ls -l /root && cat /root/requirements.txt
 RUN /usr/bin/python -m pip install --upgrade pip
 RUN pip3 install -r requirements.txt 
 RUN apt-get update && apt-get install -y --no-install-recommends imagemagick \

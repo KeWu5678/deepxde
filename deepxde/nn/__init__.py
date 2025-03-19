@@ -35,6 +35,14 @@ def _load_backend(mod_name):
     thismod = sys.modules[__name__]
     for api, obj in mod.__dict__.items():
         setattr(thismod, api, obj)
+    
+    # Ensure SHALLOW is explicitly exposed if using pytorch backend
+    if mod_name == "pytorch":
+        try:
+            from .pytorch.shallow import SHALLOW
+            setattr(thismod, "SHALLOW", SHALLOW)
+        except ImportError:
+            pass
 
 
 _load_backend(backend_name.replace(".", "_"))
