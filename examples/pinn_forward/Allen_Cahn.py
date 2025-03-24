@@ -4,14 +4,12 @@ Implementation of Allen-Cahn equation example in paper https://arxiv.org/abs/211
 """
 import deepxde as dde
 import numpy as np
-import inspect
 from scipy.io import loadmat
-from deepxde.backend import pytorch
 import torch
-import deepxde.nn.pytorch as pytorch_nn
-import sys
 import os
 from deepxde.callbacks import Callback
+
+os.environ["DDE_BACKEND"] = "pytorch"
 
 """
 print("Available in dde.nn:", dir(dde.nn))
@@ -49,38 +47,13 @@ def pde(x, y):
     return dy_t - d * dy_xx - 5 * (y - y**3)
 
 data = dde.data.TimePDE(geomtime, pde, [], num_domain=8000, num_boundary=400, num_initial=800)
-net = dde.nn.SHALLOW([2] + [60], "tanh", "Glorot normal", 1.1, regularization=('l1', 1))
+net = dde.nn.FNN([2] + [60], "tanh", "Glorot normal")
 
 # def output_transform(x, y):
 #     return x[:, 0:1]**2 * torch.cos(np.pi * x[:, 0:1]) + x[:, 1:2] * (1 - x[:, 0:1]**2) * y
 # net.apply_output_transform(output_transform)
 
-# Store initial hidden and output layer parameters BEFORE training
-def count_zeros(tensor, threshold=1e-6):
-    """Count parameters below threshold in absolute value"""
-    zero_count = torch.sum(torch.abs(tensor) < threshold).item()
-    return zero_count, tensor.numel()
 
-# Define threshold for considering a value as "zero"
-threshold = 1e-16
-
-# Store initial hidden layer parameters
-initial_hidden_weights = net.hidden.weight.detach().clone()
-initial_hidden_bias = net.hidden.bias.detach().clone()
-
-# Store initial output layer parameters
-initial_output_weights = net.output.weight.detach().clone()
-initial_output_bias = net.output.bias.detach().clone()
-
-# Count initial zeros in output layer
-initial_zero_weights, total_weights = count_zeros(initial_output_weights, threshold)
-initial_zero_bias, total_bias = count_zeros(initial_output_bias, threshold)
-
-print("=== BEFORE TRAINING ===")
-print(f"Output weights zeros: {initial_zero_weights}/{total_weights} "
-      f"({100.0 * initial_zero_weights / total_weights:.2f}%)")
-print(f"Output bias zeros: {initial_zero_bias}/{total_bias} "
-      f"({100.0 * initial_zero_bias / total_bias:.2f}%)")
 
 # [Joe]: The hard constraint ensured. 
 # def output_transform(x, y):
@@ -89,10 +62,6 @@ print(f"Output bias zeros: {initial_zero_bias}/{total_bias} "
 
 model = dde.Model(data, net)
 
-# Before training
-print("\n=== Before Training Check ===")
-print("Hidden weight requires_grad:", net.hidden.weight.requires_grad)
-print("Initial weight values:", net.hidden.weight[0,:5])
 
 class WeightMonitor(Callback):
     def __init__(self, net):
@@ -116,7 +85,7 @@ print(f"Using nn module from: {dde.nn.__file__}")
 print(f"SHALLOW class is available: {'SHALLOW' in dir(dde.nn)}")
 
 # Reduce training iterations and increase verbosity for debugging
-model.compile("adam", lr=1e-4)  # Use a smaller learning rate
+model.compile("adam", lr=1e-2)  # Use a smaller learning rate
 print("\nStarting training with smaller learning rate...")
 losshistory, train_state = model.train(iterations=1000, verbose=1, callbacks=[monitor])
 dde.saveplot(losshistory, train_state, issave=True, isplot=True)

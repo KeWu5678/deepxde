@@ -391,7 +391,7 @@ class Model:
                     gamma = self.net.regularizer[1]
                     alpha = self.net.regularizer[2]
                     phi_penalty = 0
-                    for param in  self.net.parameters():
+                    for param in  self.net.output.parameters():
                         phi_penalty += torch.sum(1/gamma * torch.log(1 + gamma * param))
                     total_loss += alpha * phi_penalty
                 self.opt.zero_grad()

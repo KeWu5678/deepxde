@@ -76,7 +76,8 @@ data = dde.data.PDE(
     anchors=observe_t,
 )
 
-net = dde.nn.FNN([1] + [40] * 3 + [3], "tanh", "Glorot uniform", regularization=["l2", 0.01])
+regularization = ("phi", 2, 0.1)
+net = dde.nn.SHALLOW([1] + [40] + [3], "tanh", "Glorot uniform", regularization=regularization)
 model = dde.Model(data, net)
 
 external_trainable_variables = [C1, C2, C3]
@@ -91,7 +92,7 @@ model.compile(
 losshistory, train_state = model.train(iterations=20000, callbacks=[variable])
 
 # train lbfgs (not implemented in JAX)
-model.compile("L-BFGS", external_trainable_variables=external_trainable_variables)
-losshistory, train_state = model.train(callbacks=[variable])
+# model.compile("L-BFGS", external_trainable_variables=external_trainable_variables)
+# losshistory, train_state = model.train(callbacks=[variable])
 
 dde.saveplot(losshistory, train_state, issave=True, isplot=True)
